@@ -1,2 +1,2 @@
-# kth_phd_task
+# nla_phd
 KTH PhD Task 2026
