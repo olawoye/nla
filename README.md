@@ -36,12 +36,40 @@ At the relatively small scale of this project (5,000 samples of OpenWebText usin
 
 
 
-I will now discuss:
+
+
+##### Reproducing/Reviewing this (Re)Implementation
+
+
+
+The full Python notebook implementation is [available here](https://github.com/olawoye/nla_phd/blob/main/notebooks/setup_activations.ipynb)
+
+
+
+You can clone/run the notebook in Google Colab. I chose the Python 3 runtime and used an L4 GPU. The free tier T4 would probably work fine but it was kind of slow for me.
+
+
+
+Next, you would
+
+* Connect the GitHub Repository (so the progress can be saved there at the end
+* Connect your Google Drive (so it can save some artefacts there) during runtime. They are moved to GitHub at the end
+* Update the parameters in Section 1, Cell 1.1. You may want to start with a low NUM\_SAMPLES\_TO\_PROCESS of say 100,500 before moving to something higher.
+
+
+
+
+
+##### The Task
+
+
+
+For the given task, I will now discuss my implementation of the following:
 
 * Model \& Architecture Choices
-* Switching from MiniLM (a light-weight encoder) to Google Gemma (and what we learnt in doing that)
-* The Activation Reconstruction loop and FVE Results
-* Quantitative Analysis (of the verbalizer generations)
+* Baseline (pre-NLA) Activation
+* Natural Language Autoencoder Implementation
+* Quantitative Analysis
 * Domain Comparison (Natural Language vs Python Code)
 * Discussions
 * Conclusion
@@ -83,15 +111,38 @@ For the training, I sourced data samples from [OpenWebText](https://huggingface.
 
 
 
+##### Verbalizer
+
+I used the Google Flan-T5-Small
 
 
-Generated Artefacts:
-
-* Item 1
-* Item 2
-* [Code Activations Paraquet](https://github.com/olawoye/nla_phd/blob/main/data/code_activations.parquet)
 
 
+
+##### Generated Artefacts
+
+For reference, artefacts generated during the experiment are stored [here in the /artefacts repository folder](artefactshttps://github.com/olawoye/nla_phd/tree/main/artefacts). They contain:
+
+* checkpoints/ (folder)
+* verbalizer\_checkpoint (folder)
+* verbalizer\_tokenizer (folder)
+* domain\_comparison.png
+* experiment\_info.json
+* nla\_distributions.png
+* requirements.txt
+* verbalizer\_checkpoint.pt
+
+
+
+
+
+
+
+
+
+
+
+### **Baseline (pre NLA) Activation**
 
 
 
@@ -101,7 +152,7 @@ Generated Artefacts:
 
 
 
-From the OpenWebText samples, a dataset of 5,000 activation records were extracted.
+From the OpenWebText samples, a dataset of 5,000 activation records were extracted. See Section 3
 
 
 
@@ -128,35 +179,28 @@ This established the foundation for all subsequent experiments
 
 
 
-### Baseline Activation Reconstruction
+##### Baseline Activation Training
 
 
 
-Before introducing natural language, a baseline activation reconstruction experiment was conducted. See Cells 13-26
+Before introducing natural language, a baseline activation reconstruction experiment was conducted. See Section 4
 
 
 
-The pipeline was 3 key stages:
+The following took place:
+
+* **Text Summary generation** from the activation dataset
+* **Text Encoding (MiniLM/Gemma Embedding)**: So, initially, the MiniLM was the first choice here. It was fast, lightweight it worked all the way to the end. However, due to its 384-dimensional capacity, it compresses most information away. Eventually, I upgraded to Gemma-2-2Bs internal encoder which operated at a comfortable 2304-dimensions.
+* **Activation Reconstruction**
+* **Training**: Train/Test Split and Training with epoch tuning and checkpoint resupmtion
+* **Cosine/FVE Evaluation**
+* **Baseline A/B Model Experiment**: Here I re-evaluated if the linear or mlp models had the best cosine/FVE
 
 
 
-##### Text (Gemma) Embedding
+###### MiniLM vs Gemma (as encoder) effect
 
-So, initially, the MiniLM was the first choice here. It was fast and it worked all the way to the end. However, due to its 384-dimensional capacity, it could not capture all necessary text information to transfer to Gemma. Eventually, I upgraded to Gemma-2-2Bs internal encoder which operated at a comfortable 2304-dimensions.
-
-
-
-Reconstructor = 
-
-
-
-
-
-Activation
-
-
-
-This established an upper-bound on reconstruction performance BEFORE introducing the natural language "bottleneck".
+Before switching to Gemma, I had a baseline linear cosine of \~ 0.18 and FVE of \~ 0.14. After switching to Gemma (as encoder), linear cosine becase \~0.60, FVE of 0.33. A roughly 3-4x improvement purely from changing the text encoder. It means the choice of the encoder is very important in any future inplementation
 
 
 
@@ -188,6 +232,21 @@ The activation appears significantly linear at this scale. To be honest, I manua
 
 
 
+###### **A/B reconstructor results table** (Section 3, Cell 4.10/4.11 output)
+
+
+
+||Cosine|FVE|
+|-|-|-|
+|Linear|||
+|MLP|||
+
+
+
+
+
+
+
 ##### Baseline Results
 
 
@@ -208,14 +267,33 @@ So even before introducing natural language the activation reconstruction is far
 
 
 
+This established an upper-bound on reconstruction performance BEFORE introducing the natural language "bottleneck".
+
+
+
+
+
+
+
 ### Natural Language Autoencoder Implementation
 
 
 
-And next, to implement the NLA, we do the following:
+##### Action Verbalizer Implementation
 
-* PCA Compression (to 64 dimensions)
-* Natural Language Explanation
+
+
+The next step was to implement the NLA:
+
+
+
+* PCA Compression: to compress the 2304 dimensions into 64-dimension vectors
+* Build Verbalizer: using the Google Flan-T5-Small model
+* Verbalizer Training: Training with warm-ups and 20 epoch tuning
+* Generate Natural Language Explanations
+* Reconstruct Activations
+* Evaluate FVE
+* Inspection of Generated Explanations
 
 
 
@@ -228,9 +306,21 @@ As I earlier mentioned, we simplified a lot of things:
 
 
 
+
+
+##### FVE and Cosine Histograms (OpenWebText)
+
+!\[FVE and Cosine Histograms](https://github.com/olawoye/nla\_phd/blob/main/artefacts/nla\_distributions.png?raw=true)
+
+
+
+
+
+
+
 ##### NLA Loop Results
 
-Post NLA Roundtrip results are visible in Cell 
+Post NLA Roundtrip results are visible in Cell
 
 
 
@@ -254,6 +344,8 @@ This supports Anthropic's work even thought it highlights the challenges of repr
 
 
 ##### The Elephant In The Room (The Gap)
+
+
 
 So yes, Anthropic reports an FVE of 0.6 - 0.8.
 
@@ -282,6 +374,12 @@ However, the goal was not to match Anthropic's absolute performance but to inves
 
 ### Qualitative Analysis of the Explanations
 
+
+
+
+
+##### Frequent Semantic Misalignment
+
 The most interesting (and sometimes shocking) aspects of the experiment was that a lot of times, the generated explanations. See Cells 35, 38 and 39
 
 
@@ -307,11 +405,51 @@ So, the verbalizer frequently generated plausible news-like language without pre
 
 
 
+##### Effect of Verbalizer Training
+
+
+
+The verbalizer consistently generates fluent English style sentences regardless of input domain or language.
+
+There was a Russian-language input that produced a generic US news sentence and the "Michael Jackson / Pirate Bay" sample.
+
+
+
+This "collapse" to the training may be die to the fact that the Flan-T5-Small verbalizer trained on OpenWebText summaries that learns that the most probable output, given "any prompt" is a fluent English language sentence. With 5,000 samples and no RL signal from the AR, the model is satisfied with this local best prediction.
+
+
+
+This highlights why the Reinforcement Learning (from the AR) is necessary as per Anthropic's own methodology
+
+
+
+IT also appears (based on visual sample analysis) that the top-10 success cases appear to be samples that have US, political or journalistic framed snippets which match the verbalizer training. This might not be valid with further testing but its worth noting.
+
+
+
+Reconstruction Evaluation from Section 5, Cell 5.11
+
+
+
+|Original||
+|-|-|
+|||
+|||
+|||
+
+
+
+
+
+
+
+
+
 ### Domain Comparison (Natural Language vs Python Code)
 
 
 
-While the task and NLAs are generally broad, I tried to factor in application to the improvement of the software code generation output. Specifically, while the entire NLA pipeline was evaluated on OpenWebText, I additionally extended to software code, to test how the pipeline generalizes and with the goal that this will be of benefit to the larger AI4Code project’s perceived goal of mechanistic interpretability of software code generation. See Section 6 (Cells 41-44).
+While the task and NLAs are generally broad, I tried to factor in application to the improvement of the software code generation output. Specifically, while the entire NLA pipeline was evaluated on OpenWebText, I additionally extended to software code, to test how the pipeline generalizes and with the goal that this will be of benefit to the larger AI4Code project’s perceived goal of mechanistic interpretability of software code generation. See Section 6, (Cells 41-44).
 
 
 
@@ -323,22 +461,53 @@ To investigate generalization, the exact same NLA pipeline was applied to [Pytho
 
 
 
-The verbalizer did not always learn code-specific concepts. For example, Input: Python Code, Output: "The new season is ..."
+Plot: Domain comparison 4-panel plot
 
 
 
-This was a little bit dissappointing as I thought code, compared with OpenWebText samples, may be more structured.
+!\[Domain comparison](https://github.com/olawoye/nla\_phd/blob/main/artefacts/domain\_comparison.png?raw=true)
+
+
+
+Here is my comparison:
+
+||OpenWebText|Python Code from The Stack|
+|-|-|-|
+|Cosine Mean|\~ 0.29|\~ 0.22|
+|FVE Median|\~ 0.16|\~ -0.02|
+
+
+
+
+
+**Verbalizer Issues**: The verbalizer did not always learn code-specific concepts. For example, Input: Python Code, Output: "The new season is ..."
+
+
+
+This was a little bit disappointing as I thought code, compared with OpenWebText samples, may be more structured.
 
 
 
 But, looking at the setup, it would suggest:
 
-* the verbalizer architechure is insifficient to deal with code-style algorithm
+* the verbalizer architecture is insufficient to deal with code-style algorithm
 * training is inadequate
 
 
 
 This is an aspect I'm determined to work on.
+
+
+
+**Domain Gap with Increased Sampling**: As we moved from 1,000 to 5,000 samples, the domain gap has widened slightly and is now very clean. OpenWebText FVE median 0.252 vs code 0.134. This seems to mean that code reconstructs at roughly half the quality of natural language. The standard deviations are also tightening, which means the distributions are becoming more stable so those FVE means can be considered reliable.
+
+
+
+**Other Findings**:
+
+* After a little bit of online research, I learnt the negative median FVE for code might mean that for the majority of code samples, the reconstruction is worse than predicting the mean activation. That its not noise, but a structured failure caused by the encoder-reconstructor being trainied on natural language and applied to code without domain adaptation.
+* If you've run the code, in Cell 6.1 (Compare block), the top-5 code successes are all short files with high English prose content - license headers, docstrings with readable variable names. This probably supports the encoder-sensitivity.
+* Perhaps, If I trained the original NLA pipeline with Qwen2.5-Coder, this would be different?
 
 
 
@@ -352,14 +521,15 @@ This is an aspect I'm determined to work on.
 
 
 
-There were key findings throughout this task:
+There were key highlights during this task:
 
 
 
-* I started the verbalization with the MiniLM encoder. I later realized learning was capped and there was little improvement in FVE as we scaled. This was due to MiniLM’s 384-dimension capacity, and as such, a lot of rich data was not being used. I switched to the inbuilt encoder shipped with the Gemma-2-2B and took advantage of the full 2304-dimension vector capacity.
-* Linear Models outperformed the deeper MLPs (See Cells 24-26). It was mixed discovery for me because I expected that with higher samples, the MLP would adjust and have better performance, but it didn't. At 5,000 samples, the (pre NLA) Linear Cosine Similarity = 0.524; FVE = 0.253, and the MLP Cosine Similarity = 0.383; FVE = 0.135. So it appears the activation geometry is substantially linear. This was quite interesting
-* The paper’s warm-start FVE (before Reinforcement Learning) is in the 0.3-0.4 range. After I increased sampling from 1,000 to 5,000, our (linear) pre-NLA FVE shot up 25% to 0.253 from 0.198 and Linear Cosine went from 0.487 to 0.524. The post-NLA FVE was 0.18 which is hopeful. This was really encouraging and made all the learning and tweaking worth it. A larger scale of 10,000+ samples may well improve this to the 0.3-0.4 range.
-* The verbalizer performed poorly in performance on code. This gaps in reconstruction accuracy (or fidelity) were disappointing
+1. I started the verbalization with the MiniLM encoder. I later realized learning was capped and there was little improvement in FVE as we scaled. This was due to MiniLM’s 384-dimension capacity, and as such, a lot of rich data was not being used. I switched to the inbuilt encoder shipped with the Gemma-2-2B and took advantage of the full 2304-dimension vector capacity. When I saw the improvement, it let me know this process is not just about working algorithms but using the right size of the right tools for the job.
+2. Linear Models outperformed the deeper MLPs (See Cells 24-26). It was mixed discovery for me because I expected that with higher samples, the MLP would adjust and have better performance, but it didn't. At 5,000 samples, the (pre NLA) Linear Cosine Similarity = 0.524; FVE = 0.253, and the MLP Cosine Similarity = 0.383; FVE = 0.135. So it appears the activation geometry is substantially linear. This was quite interesting
+3. The paper’s warm-start FVE (before Reinforcement Learning) is in the 0.3-0.4 range. After I increased sampling from 1,000 to 5,000, our (linear) pre-NLA FVE shot up 25% to 0.253 from 0.198 and Linear Cosine went from 0.487 to 0.524. The post-NLA FVE was 0.18 which is hopeful. This was really encouraging and made all the learning and tweaking worth it. A larger scale of 10,000+ samples may well improve this to the 0.3-0.4 range.
+4. Despite the increase from 0.198 to 0.253 FVE due to moving from 1,000 to 5,000, the next jump to 10,000+ may be diminishing to 0.02-0.03 gain. I would say we work more on other areas such lack of RL and change/improve the Flan-T5 verbalizer.
+5. The verbalizer performed poorly in performance on code. This gaps in reconstruction accuracy (or fidelity) were disappointing. With increase in sampling, the domain FVE gap between code/general text widened. This means there has to be more work to be done on the verbalizer rather than increase training sample for us to improve domain gains in reconstruction fidelity
 
 
 
@@ -393,8 +563,4 @@ Future work and next steps will focus on:
 * Better verbalizers
 * Larger models
 * Domain-specific (coding) experiments \& improvements
-
-
-
-
 
