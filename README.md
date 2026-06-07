@@ -511,7 +511,7 @@ Plot: Domain comparison 4-panel plot
 
 
 
-!\[Domain comparison](https://github.com/olawoye/nla\_phd/blob/main/artefacts/domain\_comparison.png?raw=true)
+![Domain comparison](https://github.com/olawoye/nla_phd/blob/main/artefacts/domain_comparison.png?raw=true)
 
 
 
