@@ -130,7 +130,7 @@ I used the Google Flan-T5-Small
 
 #### Generated Artefacts
 
-For reference, artefacts generated during the experiment are stored [here in the /artefacts repository folder](https://github.com/olawoye/nla_phd/tree/main/artefacts). Artefacts for each sample size is separated (to avoid contamination during training/re-use/resumption). Each sample artefact folder contain:
+For reference, artefacts generated during the experiment are stored [here in the /artefacts repository folder](artefactshttps://github.com/olawoye/nla_phd/tree/main/artefacts). Artefacts for each sample size is separated (to avoid contamination during training/re-use/resumption). Each sample artefact folder contain:
 
 * checkpoints/ (folder)
 * verbalizer\_checkpoint (folder)
@@ -313,15 +313,6 @@ As I earlier mentioned, we simplified a lot of things:
 
 
 
-##### Issues encountered:
-
-* Initially during my base 100 sample runs, there was complete disconnection of explanations from source texts. A text about LGBT language evolution produced "The Department of Energy has launched a team of scientists." A text about a Planned Parenthood article produced "The United States Senate is considering a new proposal about climate change." The verbalizer was generating fluent but semantically random English news sentences. The issue was discovered to be lack of L2-normalization, mid-sentence text summary extraction and identical prompts. Fixing these my creating a richer NlaDataset class generator in Cell 5.5 produced better output
-* There was also initially blank outputs and repetitive dots/fragments. Cell 5.9 was updated with parameter such as repetition-penalty and no\_repeat\_ngram\_size to provide more stability
-
-
-
-
-
 
 
 #### FVE and Cosine Histograms (OpenWebText)
@@ -340,8 +331,8 @@ Post NLA Roundtrip results are visible in Cell
 
 
 
-* NLA FVE = 0.181
-* NLA Cosine Similarity = 0.450
+* NLA FVE = 0.185
+* NLA Cosine Similarity = 0.453
 
 
 
@@ -367,14 +358,13 @@ So yes, Anthropic reports an FVE of 0.6 - 0.8.
 
 
 
-This reproduction achieved an FVE of 0.18.
+This reproduction achieved an FVE of 0.185.
 
 
 
 There were a lot of perceived differences in the experiments:
 
-* Smaller model
-* Smaller dataset
+* Smaller model \& dataset
 * No reinforcement learning
 * PCA compression
 * Simpler verbalizer architecture
@@ -408,17 +398,14 @@ Like I mentioned, running successive runs of 100, 500, 1,000 and 5,000 provided 
 |1,000 (MiniLM)|0.166|0.007|0.161|0.006|
 |1,000 (Gemma, Pre Aug)|0.601|0.330|0.237|-0.034|
 |1,000 (Gemma, Post Aug)|0.487|0.198|0.419|0.138|
-|5,000 (Gemma, Post Aug)|0.529|0.260|0.450|0.180|
+|5,000 (Gemma, Post Aug)|0.529|0.260|0.453|0.185|
 
 
 
 1. The MiniLM plateau between 100 and 1,000 samples raised the first alarm/curiosity that the encoder was the issue not data volume. Once, the encoder was changed, the FVE changed significantly
 2. The negative FVE (post gemma upgrade) was due to the fact that the AR was trained on 1,000 char long text while it received short verbalizer output of 10-20 words. We fixed this Cell 4.2. This problem was initially hidden in MiniLM because it by default compressed everything into a small flat semantic space regardless of length
 3. The sample size change also provided improvement, but the rate of increase is diminishing
-
-At the very early phase, the most interesting aspects of the experiment was frequent semantic mis alignment of the generated explanations. These were debugged and fixed. However, as the algorithm stabilized, there were still some explanations in fluent English but not semantically aligned with the source text. For example: Original: Poverty statistics article; Generated: "By Elizabeth Hill For many, the current position of State Department as a general is not quite correct." So, the verbalizer frequently generated plausible news-like language without preserving the actual topic
-
-
+4. At the very early phase, the most interesting aspects of the experiment was frequent semantic issues with generated explanations. These were debugged and fixed. However, as the algorithm stabilized, there were still some explanations in fluent English but not semantically aligned with the source text. For example: Original: Poverty statistics article; Generated: "By Elizabeth Hill For many, the current position of State Department as a general is not quite correct."
 
 
 
@@ -456,7 +443,7 @@ IT also appears (based on visual sample analysis) that the top-10 success cases 
 
 
 
-While the task and NLAs are generally broad, I tried to factor in application to the improvement of the software code generation output. Specifically, while the entire NLA pipeline was evaluated on OpenWebText, I additionally extended to software code, to test how the pipeline generalizes and with the goal that this will be of benefit to the larger AI4Code project’s perceived goal of mechanistic interpretability of software code generation. See Section 6, (Cells 41-44).
+While the task and NLAs are generally broad, I tried to factor in application to the improvement of the software code generation output. Specifically, while the entire NLA pipeline was evaluated on OpenWebText, I additionally extended to software code, to test how the pipeline generalizes in code domain and with the goal that this will be of benefit to the larger AI4Code project’s perceived goal of mechanistic interpretability of software code generation. See Section 6, (Cells 41-44).
 
 
 
@@ -468,7 +455,7 @@ To investigate generalization, the exact same NLA pipeline was applied to [Pytho
 
 
 
-Plot: Domain comparison 4-panel plot
+Plot: Domain comparison plot
 
 
 
@@ -533,9 +520,9 @@ There were key highlights during this task:
 
 
 1. I started the verbalization with the MiniLM encoder. I later realized learning was capped and there was little improvement in FVE as we scaled. This was due to MiniLM’s 384-dimension capacity, and as such, a lot of rich data was not being used. I switched to the inbuilt encoder shipped with the Gemma-2-2B and took advantage of the full 2304-dimension vector capacity. When I saw the improvement, it let me know this process is not just about working algorithms but using the right size of the right tools for the job.
-2. Linear Models outperformed the deeper MLPs (See Cells 24-26). It was mixed discovery for me because I expected that with higher samples, the MLP would adjust and have better performance, but it didn't. At 5,000 samples, the (pre NLA) Linear Cosine Similarity = 0.524; FVE = 0.253, and the MLP Cosine Similarity = 0.383; FVE = 0.135. So it appears the activation geometry is substantially linear. This was quite interesting
-3. The paper’s warm-start FVE (before Reinforcement Learning) is in the 0.3-0.4 range. After I increased sampling from 1,000 to 5,000, our (linear) pre-NLA FVE shot up 25% to 0.253 from 0.198 and Linear Cosine went from 0.487 to 0.524. The post-NLA FVE was 0.18 which is hopeful. This was really encouraging and made all the learning and tweaking worth it. A larger scale of 10,000+ samples may well improve this to the 0.3-0.4 range.
-4. Despite the increase from 0.198 to 0.253 FVE due to moving from 1,000 to 5,000, the next jump to 10,000+ may be diminishing to 0.02-0.03 gain. I would say we work more on other areas such lack of RL and change/improve the Flan-T5 verbalizer.
+2. Linear Models outperformed the deeper MLPs (See Cells 24-26). It was mixed discovery for me because I expected that with higher samples, the MLP would adjust and have better performance, but it didn't. At 5,000 samples, the (pre NLA) Linear Cosine Similarity = 0.529; FVE = 0.260, and the MLP Cosine Similarity = 0.381; FVE = 0.133. So it appears the activation geometry is substantially linear. This was quite interesting
+3. The paper’s warm-start FVE (before Reinforcement Learning) is in the 0.3-0.4 range. After I increased sampling from 1,000 to 5,000, our (linear) pre-NLA FVE shot up 25% to 0.260 from 0.198 and Linear Cosine went from 0.487 to 0.529. The post-NLA FVE was 0.185 which is hopeful. This was really encouraging and made all the learning and tweaking worth it. A larger scale of 10,000+ samples may well improve this to the 0.3-0.4 range.
+4. Despite the increase from 0.198 to 0.260 FVE due to moving from 1,000 to 5,000, the next jump to 10,000+ may be diminishing to 0.02-0.03 gain. I would say we work more on other areas such lack of RL and change/improve the Flan-T5 verbalizer.
 5. The verbalizer performed poorly in performance on code. This gaps in reconstruction accuracy (or fidelity) were disappointing. With increase in sampling, the domain FVE gap between code/general text widened. This means there has to be more work to be done on the verbalizer rather than increase training sample for us to improve domain gains in reconstruction fidelity
 
 
@@ -552,15 +539,10 @@ The task successfully demonstrated reproduction in the following areas:
 * Activation reconstruction
 * Natural-language bottleneck training
 * FVE evaluation
-* Cross-domain evaluation
 
 
 
 The most exciting evidence is that Natural language explanations retained enough information to reconstruct activations with decent fidelity
-
-
-
-In the code domain, the generated explanations often lacked far less semantic context relative to the OpenWebText samples
 
 
 
