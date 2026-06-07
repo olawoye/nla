@@ -130,7 +130,7 @@ I used the Google Flan-T5-Small
 
 #### Generated Artefacts
 
-For reference, artefacts generated during the experiment are stored [here in the /artefacts repository folder](artefactshttps://github.com/olawoye/nla_phd/tree/main/artefacts). Artefacts for each sample size is separated (to avoid contamination during training/re-use/resumption). Each sample artefact folder contain:
+For reference, artefacts generated during the experiment are stored [here in the /artefacts repository folder](https://github.com/olawoye/nla_phd/tree/main/artefacts). Artefacts for each sample size is separated (to avoid contamination during training/re-use/resumption). Each sample artefact folder contain:
 
 * checkpoints/ (folder)
 * verbalizer\_checkpoint (folder)
@@ -326,7 +326,7 @@ As I earlier mentioned, we simplified a lot of things:
 
 #### FVE and Cosine Histograms (OpenWebText)
 
-!\[FVE and Cosine Histograms](https://github.com/olawoye/nla\_phd/blob/main/artefacts/nla\_distributions.png?raw=true)
+![FVE and Cosine Histograms](https://github.com/olawoye/nla_phd/blob/main/artefacts/nla_distributions.png?raw=true)
 
 
 
@@ -416,32 +416,7 @@ Like I mentioned, running successive runs of 100, 500, 1,000 and 5,000 provided 
 2. The negative FVE (post gemma upgrade) was due to the fact that the AR was trained on 1,000 char long text while it received short verbalizer output of 10-20 words. We fixed this Cell 4.2. This problem was initially hidden in MiniLM because it by default compressed everything into a small flat semantic space regardless of length
 3. The sample size change also provided improvement, but the rate of increase is diminishing
 
-
-
-
-
-#### Frequent Semantic Misalignment
-
-The most interesting (and sometimes shocking) aspects of the experiment was that a lot of times, the generated explanations. See Cells 35, 38 and 39
-
-
-
-So at the earlier part of the algorithim, there were often blank or dot (.) explanations. These were debugged and fixed.
-
-
-
-However, as the algorithm stabilized, there were still some explanations in fluent English but not semantically aligned with the source text.
-
-
-
-For example:
-
-* Original: Poverty statistics article
-* Generated: "By Elizabeth Hill For many, the current position of State Department as a general is not quite correct."
-
-
-
-So, the verbalizer frequently generated plausible news-like language without preserving the actual topic
+At the very early phase, the most interesting aspects of the experiment was frequent semantic mis alignment of the generated explanations. These were debugged and fixed. However, as the algorithm stabilized, there were still some explanations in fluent English but not semantically aligned with the source text. For example: Original: Poverty statistics article; Generated: "By Elizabeth Hill For many, the current position of State Department as a general is not quite correct." So, the verbalizer frequently generated plausible news-like language without preserving the actual topic
 
 
 
@@ -466,20 +441,6 @@ This highlights why the Reinforcement Learning (from the AR) is necessary as per
 
 
 IT also appears (based on visual sample analysis) that the top-10 success cases appear to be samples that have US, political or journalistic framed snippets which match the verbalizer training. This might not be valid with further testing but its worth noting.
-
-
-
-Reconstruction Evaluation from Section 5, Cell 5.11
-
-
-
-|Original|Reconstruction|
-|-|-|
-|1|2|
-|3|4|
-|5|6|
-
-
 
 
 
