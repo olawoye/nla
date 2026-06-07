@@ -38,7 +38,7 @@ At the relatively small scale of this project (5,000 samples of OpenWebText usin
 
 
 
-##### Reproducing/Reviewing this (Re)Implementation
+#### Reproducing/Reviewing this (Re)Implementation
 
 
 
@@ -60,7 +60,7 @@ Next, you would
 
 
 
-##### The Task
+#### The Task
 
 
 
@@ -86,7 +86,7 @@ The development environment of choice was Google Colab. Being cloud-based makes 
 
 
 
-##### **Model Choice**:
+#### Model Choice:
 
 Initially, I had two base models in mind:
 
@@ -99,7 +99,16 @@ They are both lightweight, and my excitement about how this would generalize in 
 
 
 
-##### Sample \& Scaling:
+#### Encoder Choice:
+
+* Google Gemma-2-2B (in-built encoder)
+* all-MiniLM-L6-v2 (was initially used but discarded)
+
+
+
+
+
+#### Sample \& Scaling:
 
 For the training, I sourced data samples from [OpenWebText](https://huggingface.co/datasets/Skylion007/openwebtext) samples (an open-source replication of the WebText dataset from OpenAI). The scaling was done in stages for the purpose of speed, efficiency and to save cost (in terms of deploying time and GPU resources ONLY when it really mattered:
 
@@ -111,7 +120,7 @@ For the training, I sourced data samples from [OpenWebText](https://huggingface.
 
 
 
-##### Verbalizer
+#### Verbalizer
 
 I used the Google Flan-T5-Small
 
@@ -119,9 +128,9 @@ I used the Google Flan-T5-Small
 
 
 
-##### Generated Artefacts
+#### Generated Artefacts
 
-For reference, artefacts generated during the experiment are stored [here in the /artefacts repository folder](artefactshttps://github.com/olawoye/nla_phd/tree/main/artefacts). They contain:
+For reference, artefacts generated during the experiment are stored [here in the /artefacts repository folder](artefactshttps://github.com/olawoye/nla_phd/tree/main/artefacts). Artefacts for each sample size is separated (to avoid contamination during training/re-use/resumption). Each sample artefact folder contain:
 
 * checkpoints/ (folder)
 * verbalizer\_checkpoint (folder)
@@ -148,7 +157,7 @@ For reference, artefacts generated during the experiment are stored [here in the
 
 
 
-##### Activation Dataset:
+#### Activation Dataset:
 
 
 
@@ -179,7 +188,7 @@ This established the foundation for all subsequent experiments
 
 
 
-##### Baseline Activation Training
+#### Baseline Activation Training
 
 
 
@@ -198,15 +207,15 @@ The following took place:
 
 
 
-###### MiniLM vs Gemma (as encoder) effect
+##### MiniLM vs Gemma (as encoder) effect
 
-Before switching to Gemma, I had a baseline linear cosine of \~ 0.18 and FVE of \~ 0.14. After switching to Gemma (as encoder), linear cosine becase \~0.60, FVE of 0.33. A roughly 3-4x improvement purely from changing the text encoder. It means the choice of the encoder is very important in any future inplementation
-
-
+Before switching to Gemma, I had a baseline linear cosine of \~ 0.18 and FVE of \~ 0.14. After switching to Gemma (as encoder), linear cosine of \~0.60, FVE of 0.33. A roughly 3-4x improvement purely from changing the text encoder. MiniLM produced 384-dimensional embeddings that capture surface meaning. Gemma layer-8 activations are 2304-dimensional and encode computational state. The AR was trying to recover a 2304-dimension rich state from a 284-dimensional lossy semantic summary. It means the choice of the encoder is very important in any future implementation
 
 
 
-##### Linear vs MLP Model Performance
+
+
+#### Linear vs MLP Model Performance
 
 Just to be sure, I did an A/B experiment to attempt to see if the activation relationship was better modelled by a linear or MLP pattern. See cells
 
@@ -214,15 +223,15 @@ Just to be sure, I did an A/B experiment to attempt to see if the activation rel
 
 Linear Model:
 
-* Cosine Similarity = 0.524
-* FVE = 0.253
+* Cosine Similarity = 0.529
+* FVE = 0.260
 
 
 
 MLP:
 
-* Cosine Similarity = 0.383
-* FVE = 0.135
+* Cosine Similarity = 0.381
+* FVE = 0.133
 
 
 
@@ -238,8 +247,8 @@ The activation appears significantly linear at this scale. To be honest, I manua
 
 ||Cosine|FVE|
 |-|-|-|
-|Linear|||
-|MLP|||
+|Linear|0.529|0.260|
+|MLP|0.381|0.133|
 
 
 
@@ -247,15 +256,15 @@ The activation appears significantly linear at this scale. To be honest, I manua
 
 
 
-##### Baseline Results
+#### Baseline Results
 
 
 
 So The result from the pipeline was:
 
-Cosine Similarity: 0.537
+Cosine Similarity: 0.529
 
-FVE: 0.267
+FVE: 0.260
 
 
 
@@ -279,7 +288,7 @@ This established an upper-bound on reconstruction performance BEFORE introducing
 
 
 
-##### Action Verbalizer Implementation
+#### Action Verbalizer Implementation
 
 
 
@@ -304,11 +313,18 @@ As I earlier mentioned, we simplified a lot of things:
 
 
 
+##### Issues encountered:
+
+* Initially during my base 100 sample runs, there was complete disconnection of explanations from source texts. A text about LGBT language evolution produced "The Department of Energy has launched a team of scientists." A text about a Planned Parenthood article produced "The United States Senate is considering a new proposal about climate change." The verbalizer was generating fluent but semantically random English news sentences. The issue was discovered to be lack of L2-normalization, mid-sentence text summary extraction and identical prompts. Fixing these my creating a richer NlaDataset class generator in Cell 5.5 produced better output
+* There was also initially blank outputs and repetitive dots/fragments. Cell 5.9 was updated with parameter such as repetition-penalty and no\_repeat\_ngram\_size to provide more stability
 
 
 
 
-##### FVE and Cosine Histograms (OpenWebText)
+
+
+
+#### FVE and Cosine Histograms (OpenWebText)
 
 !\[FVE and Cosine Histograms](https://github.com/olawoye/nla\_phd/blob/main/artefacts/nla\_distributions.png?raw=true)
 
@@ -329,7 +345,7 @@ Post NLA Roundtrip results are visible in Cell
 
 
 
-Comparing this to baseline (pre NLA) FVE of 0.267
+Comparing this to baseline (pre NLA) FVE of 0.260
 
 
 
@@ -378,7 +394,33 @@ However, the goal was not to match Anthropic's absolute performance but to inves
 
 
 
-##### Frequent Semantic Misalignment
+#### Scaling Progression \& diminishing returns
+
+
+
+Like I mentioned, running successive runs of 100, 500, 1,000 and 5,000 provided some insight as to how the pipeline behaved
+
+
+
+|Samples|Linear Cosine|Linear FVE|NLA Cosine|NLA FVE|
+|-|-|-|-|-|
+|100 (MiniLM)|0.180|0.014|0.161|0.006|
+|1,000 (MiniLM)|0.166|0.007|0.161|0.006|
+|1,000 (Gemma, Pre Aug)|0.601|0.330|0.237|-0.034|
+|1,000 (Gemma, Post Aug)|0.487|0.198|0.419|0.138|
+|5,000 (Gemma, Post Aug)|0.529|0.260|0.450|0.180|
+
+
+
+1. The MiniLM plateau between 100 and 1,000 samples raised the first alarm/curiosity that the encoder was the issue not data volume. Once, the encoder was changed, the FVE changed significantly
+2. The negative FVE (post gemma upgrade) was due to the fact that the AR was trained on 1,000 char long text while it received short verbalizer output of 10-20 words. We fixed this Cell 4.2. This problem was initially hidden in MiniLM because it by default compressed everything into a small flat semantic space regardless of length
+3. The sample size change also provided improvement, but the rate of increase is diminishing
+
+
+
+
+
+#### Frequent Semantic Misalignment
 
 The most interesting (and sometimes shocking) aspects of the experiment was that a lot of times, the generated explanations. See Cells 35, 38 and 39
 
@@ -405,7 +447,7 @@ So, the verbalizer frequently generated plausible news-like language without pre
 
 
 
-##### Effect of Verbalizer Training
+#### Effect of Verbalizer Training
 
 
 
@@ -431,11 +473,15 @@ Reconstruction Evaluation from Section 5, Cell 5.11
 
 
 
-|Original||
+|Original|Reconstruction|
 |-|-|
-|||
-|||
-|||
+|1|2|
+|3|4|
+|5|6|
+
+
+
+
 
 
 
