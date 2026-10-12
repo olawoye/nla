@@ -1,4 +1,4 @@
-# **KTH PhD Task 2026**
+# **NLA Project**
 
 
 
@@ -42,7 +42,7 @@ At the relatively small scale of this project (5,000 samples of OpenWebText usin
 
 
 
-The full Python notebook implementation is [available here](https://github.com/olawoye/nla_phd/blob/main/notebooks/setup_activations.ipynb)
+The full Python notebook implementation is [available here](https://github.com/olawoye/nla/blob/main/notebooks/setup_activations.ipynb)
 
 
 
@@ -130,7 +130,7 @@ I used the Google Flan-T5-Small
 
 #### Generated Artefacts
 
-For reference, artefacts generated during the experiment are stored [here in the /artefacts repository folder](https://github.com/olawoye/nla_phd/tree/main/artefacts). Artefacts for each sample size is separated (to avoid contamination during training/re-use/resumption). Each sample artefact folder contain:
+For reference, artefacts generated during the experiment are stored [here in the /artefacts repository folder](https://github.com/olawoye/nla/tree/main/artefacts). Artefacts for each sample size are separated to avoid contamination during training/re-use/resumption. Each sample artefact folder contains:
 
 * checkpoints/ (folder)
 * verbalizer\_checkpoint (folder)
@@ -317,7 +317,7 @@ As I earlier mentioned, we simplified a lot of things:
 
 #### FVE and Cosine Histograms (OpenWebText)
 
-![FVE and Cosine Histograms](https://github.com/olawoye/nla_phd/blob/main/artefacts/5000_samples/nla_distributions.png?raw=true)
+![FVE and Cosine Histograms](https://github.com/olawoye/nla/blob/main/artefacts/nla_distributions.png?raw=true)
 
 
 
@@ -459,7 +459,7 @@ Plot: Domain comparison plot
 
 
 
-![Domain comparison](https://github.com/olawoye/nla_phd/blob/main/artefacts/5000_samples/domain_comparison.png?raw=true)
+![Domain comparison](https://github.com/olawoye/nla/blob/main/artefacts/domain_comparison.png?raw=true)
 
 
 
